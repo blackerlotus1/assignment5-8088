@@ -1,0 +1,44 @@
+import pandas as pd
+import control as ctrl
+import numpy as np
+from qpsolvers import solve_qp
+import time
+
+# system dynamic
+A = np.array([[0.983500, 2.782, 0],
+              [-0.0006821, 0.978, 0],
+              [-0.0009730, 2.804, 1]])
+B = np.array([[0.01293],
+              [0.00100],
+              [0.001425]])
+Q = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+R = np.array([1])
+Pf, _, K = ctrl.dare(A, B, Q, R)
+
+# N=10
+N = 10
+# get matrix P
+df = pd.read_excel('P.xlsx', 'P1', header=1)
+P = np.array(df)
+q = np.zeros((43, 1))
+# get matrix A
+df = pd.read_excel('A.xlsx', 'P1', header=1)
+A = np.array(df)
+# initial state
+b = np.vstack((np.array([[-0.13057], [-0.00846], [-0.07757]]), np.zeros((30, 1))))
+# get matrix G
+df = pd.read_excel('G.xlsx', 'P1', header=1)
+G = np.array(df)
+d = np.array([[0.2007], [0.2007], [0.2443], [0.2443], [0.6108], [0.6108], [0.4014], [0.4014], [0.4712], [0.4188]])
+h = np.vstack((d, d, d, d, d, d, d, d, d, d, np.array([[0.2007], [0.2007], [0.2443], [0.2443], [0.6108], [0.6108], [0.4014], [0.4014]])))
+
+z_min = np.array([[-0.2007], [-0.2443], [-0.6109], [-0.4189]])
+z_max = np.array([[0.2007], [0.2443], [0.6109], [0.4712]])
+lb = np.vstack((z_min, z_min, z_min, z_min, z_min, z_min, z_min, z_min, z_min, z_min, np.array([[-0.2007], [-0.2443], [-0.6109]])))
+ub = np.vstack((z_max, z_max, z_max, z_max, z_max, z_max, z_max, z_max, z_max, z_max, np.array([[0.2007], [0.2443], [0.6109]])))
+# solution
+t1 = time.time()
+x = solve_qp(P, q, G, h, A, b, lb=lb, ub=ub, solver="proxqp")
+t2 = time.time()
+print(f"QP solution: {x = }")
+print("time =", t2-t1)
